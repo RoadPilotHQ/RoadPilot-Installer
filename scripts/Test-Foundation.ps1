@@ -23,7 +23,9 @@ $required = @(
     'README.md', '.gitignore', '.github/workflows/validate.yml',
     'config/release-manifest.schema.json', 'config/release-manifest.example.json',
     'docs/architecture.md', 'docs/release-manifest.md', 'docs/git-identity-policy.md',
-    'scripts/Test-Foundation.ps1', 'scripts/Test-ReleaseManifest.ps1', 'tests/ReleaseManifest.tests.ps1'
+    'docs/release-pipeline-architecture.md', 'docs/release-manifest-resolution.md',
+    'scripts/Test-Foundation.ps1', 'scripts/Test-ReleaseManifest.ps1', 'tests/ReleaseManifest.tests.ps1',
+    'scripts/Resolve-ReleaseManifest.ps1', 'tests/Resolve-ReleaseManifest.tests.ps1'
 )
 foreach ($f in $required) { Check "exists: $f" (Test-Path -LiteralPath (Rel $f) -PathType Leaf) }
 
@@ -97,6 +99,11 @@ Check 'no personal user paths found' ($pathHits.Count -eq 0) ($pathHits -join ',
 $testOut = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Rel 'tests/ReleaseManifest.tests.ps1') 2>&1
 $testOut | ForEach-Object { Write-Host "       $_" }
 Check 'manifest rule tests pass' ($LASTEXITCODE -eq 0)
+
+# 8. Manifest resolution tests (isolated temporary repositories, no network)
+$resolveOut = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Rel 'tests/Resolve-ReleaseManifest.tests.ps1') 2>&1
+$resolveOut | Where-Object { "$_" -notmatch '^PASS ' } | ForEach-Object { Write-Host "       $_" }
+Check 'manifest resolution tests pass' ($LASTEXITCODE -eq 0)
 
 Write-Host ''
 if ($failures.Count) { Write-Host "Foundation validation FAILED ($($failures.Count) check(s))."; exit 1 }

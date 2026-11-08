@@ -8,6 +8,7 @@ Central build, packaging and release management for the RoadPilot ecosystem.
 - A release manifest definition: [schema](config/release-manifest.schema.json) and a clearly marked [example](config/release-manifest.example.json) (not a verified release).
 - Documentation: [architecture](docs/architecture.md), [release manifest](docs/release-manifest.md), [Git identity policy](docs/git-identity-policy.md).
 - Lightweight validation for the manifest and the repository structure, run locally and in GitHub Actions.
+- [Release pipeline architecture](docs/release-pipeline-architecture.md) (design only) and, from it, Phase 2B: [manifest resolution and pre-build consistency checks](docs/release-manifest-resolution.md). Nothing is built or published yet.
 
 ## Validate
 
