@@ -60,7 +60,7 @@ Consequences:
 - The only **verified** build dependency is `RoadPilot -> RoadPilot-Telemetry` (client crate). That matches the single dependency recorded in `config/release-manifest.example.json`.
 - `RoadPilot-Language` and `RoadPilot-Plugin` cannot be built or shipped today.
 - `RoadPilot-Map`, `RoadPilot-Visualization` and the two C++ plugins are **independent deliverables**, not inputs to the app. Whether any of them ships with a release is an open product decision, not an architectural given.
-- The current example manifest lists `map`, `language` and `visualization` in `buildOrder`. The validator requires every listed repository to appear in `buildOrder`, but no dependency from the app to those three is verified. A real release manifest must list only repositories that are actually part of that release. The example is not modified in this phase.
+- At the time of Phase 2A the example manifest listed `map`, `language` and `visualization` in `buildOrder` without any verified dependency, although the validator requires every listed repository to appear in `buildOrder`. A real release manifest must list only repositories that are actually part of that release. **Resolved in Phase 2B.1:** the example now lists only `telemetry` and `roadpilot`.
 
 ### Facts that shape the design
 
@@ -298,7 +298,7 @@ Later, only after separate verification and decisions: building and shipping the
 ## 12. Open questions and unresolved decisions
 
 1. **Schema limits.** The current manifest cannot express toolchain versions, artifact lists, per-repository build steps or the distinction "build input" versus "distributed component". This document works around that with scripts and a separate build record. Whether a future schema version should add these fields is undecided and was out of scope here.
-2. **Example manifest.** It lists `map`, `language` and `visualization` in `buildOrder` without any verified dependency, and the validator forces every listed repository into `buildOrder`. It should be corrected or clarified in phase 2B.
+2. **Example manifest.** *Resolved in Phase 2B.1:* the example now contains only the two verified build inputs. Adding further components still needs verified relationships and, for roles such as "shipped component", a schema decision.
 3. **Which components ship.** Only the RoadPilot app is a verified deliverable. Shipping the Telemetry plugin, the SDK input plugin, the Map CLI or the Visualization app is undecided.
 4. **SCS SDK.** Both C++ plugins need the SCS SDK, which is not in the repositories. Whether a CI build may obtain and use it, and whether built plugins may be redistributed, is **unknown**.
 5. **Licensing.** No repository has a license (Map documents this as an open question). This blocks any public distribution decision.

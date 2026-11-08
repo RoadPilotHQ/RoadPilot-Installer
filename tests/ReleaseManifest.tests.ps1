@@ -52,19 +52,19 @@ Expect 'foreign repository URL is rejected' $m $false '*url must be*'
 $m = New-Example; $m.repositories[1].id = $m.repositories[0].id
 Expect 'duplicate id is rejected' $m $false '*Duplicate repository id*'
 
-$m = New-Example; $m.buildOrder = @('roadpilot', 'telemetry', 'map', 'language', 'visualization')
+$m = New-Example; $m.buildOrder = @('roadpilot', 'telemetry')
 Expect 'build order violating a dependency is rejected' $m $false '*before its dependency*'
 
-$m = New-Example; $m.buildOrder = @('telemetry', 'map')
+$m = New-Example; $m.buildOrder = @('telemetry')
 Expect 'repository missing from build order is rejected' $m $false '*missing from buildOrder*'
 
-$m = New-Example; $m.repositories[4].dependsOn = @('nonexistent')
+$m = New-Example; $m.repositories[1].dependsOn = @('nonexistent')
 Expect 'unknown dependency is rejected' $m $false '*unknown id*'
 
 $m = New-Example; $m.repositories[0].dependsOn = @('roadpilot'); $m.repositories[0] | Add-Member -NotePropertyName dependencyEvidence -NotePropertyValue 'test'
 Expect 'dependency cycle is rejected' $m $false '*cycle*'
 
-$m = New-Example; $m.repositories[4].PSObject.Properties.Remove('dependencyEvidence')
+$m = New-Example; $m.repositories[1].PSObject.Properties.Remove('dependencyEvidence')
 Expect 'dependency without evidence is rejected' $m $false '*requires dependencyEvidence*'
 
 $m = New-Example; $m.platforms = @([pscustomobject]@{ os = 'linux'; arch = 'x64' })
@@ -72,6 +72,29 @@ Expect 'unsupported platform is rejected' $m $false '*Unsupported platform*'
 
 $m = New-Example; $m.PSObject.Properties.Remove('buildOrder')
 Expect 'missing top-level property is rejected' $m $false '*Missing top-level*'
+
+# The example manifest describes only the verified build inputs: RoadPilot depends on RoadPilot-Telemetry.
+function Expect-True([string]$Name, [bool]$Condition, [string]$Detail = '') {
+    if ($Condition) { Write-Host "PASS $Name" } else { Write-Host "FAIL $Name :: $Detail"; $script:fail++ }
+}
+$ex = New-Example
+$schema = Get-Content -LiteralPath (Join-Path $root 'config/release-manifest.schema.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$exErrors = Get-ReleaseManifestErrors -Manifest $ex
+Expect-True 'example passes the manifest validation rules' ($exErrors.Count -eq 0) ($exErrors -join '; ')
+Expect-True 'example is marked as an example, not verified' ($ex.status -eq 'example')
+$exNames = (@($ex.repositories | ForEach-Object { $_.name }) -join ',')
+Expect-True 'example contains exactly the two verified repositories' ($exNames -ceq 'RoadPilot-Telemetry,RoadPilot') $exNames
+Expect-True 'example has no unverified repository (Map, Language, Visualization, Plugin, SDK)' (@($ex.repositories | Where-Object { $_.name -cnotin 'RoadPilot', 'RoadPilot-Telemetry' }).Count -eq 0)
+$telEntry = @($ex.repositories | Where-Object { $_.name -ceq 'RoadPilot-Telemetry' })[0]
+$appEntry = @($ex.repositories | Where-Object { $_.name -ceq 'RoadPilot' })[0]
+Expect-True 'RoadPilot depends on RoadPilot-Telemetry and carries its evidence' (((@($appEntry.dependsOn) -join ',') -ceq $telEntry.id) -and ($appEntry.dependencyEvidence -match 'Cargo\.toml'))
+Expect-True 'RoadPilot-Telemetry has no dependencies' (@($telEntry.dependsOn).Count -eq 0)
+Expect-True 'build order is telemetry before roadpilot' ((@($ex.buildOrder) -join ',') -ceq "$($telEntry.id),$($appEntry.id)")
+$namePattern = $schema.properties.repositories.items.properties.name.pattern
+$urlPattern = $schema.properties.repositories.items.properties.url.pattern
+Expect-True 'example repository names and URLs match the schema patterns' (@($ex.repositories | Where-Object { $_.name -cnotmatch $namePattern -or $_.url -cnotmatch $urlPattern }).Count -eq 0)
+Expect-True 'example invents no values: every version and commit is UNRESOLVED' ((@($ex.repositories | Where-Object { $_.version -cne 'UNRESOLVED' -or $_.pin.commit -cne 'UNRESOLVED' }).Count -eq 0) -and ($ex.release.version -ceq 'UNRESOLVED'))
+Expect-True 'example is rejected where a verified manifest is required' ((Get-ReleaseManifestErrors -Manifest $ex -RequireVerified).Count -gt 0)
 
 if ($script:fail) { Write-Host "$($script:fail) test(s) failed."; exit 1 }
 Write-Host 'All manifest rule tests passed.'

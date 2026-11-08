@@ -66,7 +66,9 @@ The resolver does not treat every listed repository as a build dependency. Each 
 
 This matches the finding of Phase 2A: only RoadPilot to RoadPilot-Telemetry is a verified build dependency.
 
-**Limitation of the current example.** `config/release-manifest.example.json` lists `map`, `language` and `visualization` in `buildOrder` and cannot be resolved as a release (it is not verified, and those entries have no verified role). The validator forces every listed repository into `buildOrder`, and the schema has no field to say "shipped component" versus "build input". The smallest justified correction, **not applied in this phase**: reduce the example to the two verified entries (`telemetry`, `roadpilot`), and add other components only when their role is verified. A fuller solution (explicit roles, toolchain pins) needs a schema change, which is a later decision.
+**The example manifest.** `config/release-manifest.example.json` contains only the two verified build inputs, `RoadPilot-Telemetry` and `RoadPilot` (build order: telemetry, then roadpilot), with the verified dependency of the application on Telemetry. It deliberately lists no other repository. It cannot be resolved as it stands: it has `status: "example"` and every version and commit is `UNRESOLVED`, and the resolver never fills such values in or guesses them. The tests promote the example to a verified manifest using values taken from isolated fixture repositories and confirm that it then resolves completely (two repositories, roles `build-input` and `application`, one verified dependency, no warnings), and that adding Map, Language or Visualization back is rejected.
+
+More components (for example RoadPilot-Map or the C++ plugins) can be added once their relationship to the release has been verified; until then the validator's rule that every listed repository appears in `buildOrder` and the schema's lack of a "shipped component" field mean the safest manifest lists build inputs only. A fuller solution (explicit roles, toolchain pins) needs a schema change, which is a later decision.
 
 ## Resolved output
 

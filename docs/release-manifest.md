@@ -37,7 +37,9 @@ The only committed manifest is `release-manifest.example.json`. A real release m
 - Mutable branch names are never a pin. A `branch` field is rejected outright.
 - Commit SHAs and versions are never invented. Unknown values stay `UNRESOLVED`.
 - Dependencies are listed only when they have been observed. The example currently records one: `RoadPilot` depends on `RoadPilot-Telemetry` (git `rev` dependency in `src-tauri/Cargo.toml`).
-- `RoadPilot-Plugin` and `RoadPilot-SDK` are intentionally absent from the example until their role in the build is verified.
+- The example contains **only verified build inputs**: `RoadPilot` (the application) and `RoadPilot-Telemetry`, which is currently the **only verified external build dependency** of the application.
+- Other RoadPilot components (`RoadPilot-Map`, `RoadPilot-Language`, `RoadPilot-Visualization`, `RoadPilot-Plugin`, `RoadPilot-SDK`, ...) are **not** automatically treated as build dependencies and are therefore absent from the example. A repository is added to a manifest only after its actual build relationship has been verified (and the resolver has a check for it). The resolver rejects entries that have no verified role, see [release-manifest-resolution.md](release-manifest-resolution.md).
+- The example itself is never resolvable, because it is not verified and every version and commit is `UNRESOLVED`. The resolver's tests fill those values from isolated fixture repositories to prove that the example's structure resolves.
 
 ## Validate
 

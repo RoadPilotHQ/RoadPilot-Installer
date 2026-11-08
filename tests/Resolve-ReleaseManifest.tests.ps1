@@ -389,6 +389,64 @@ try {
         $null = Invoke-G $f.InstallerDir @('remote', 'set-url', 'origin', 'https://github.com/RoadPilotHQ/RoadPilot-Website.git')
         Assert-Rejected (Invoke-Resolve $f) 'Installer origin'
     }
+
+    # ------------------------------------------------------------ the example manifest
+
+    # Promotes the committed example to a verified manifest using only values taken from the fixture
+    # repositories. The structure (ids, names, URLs, roles, dependencies, build order) stays as committed.
+    function ConvertTo-VerifiedExample($F) {
+        $ex = Get-Content -LiteralPath (Join-Path $InstallerRoot 'config/release-manifest.example.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        $ex.status = 'verified'
+        $ex.release.version = '1.0.0'
+        foreach ($r in @($ex.repositories)) {
+            if ($r.name -ceq 'RoadPilot') { $r.version = '1.0.0'; $r.pin.commit = $F.AppSha }
+            elseif ($r.name -ceq 'RoadPilot-Telemetry') { $r.version = '0.1.0'; $r.pin.commit = $F.TelSha }
+        }
+        return $ex
+    }
+
+    Test-Case 'the committed example, once its UNRESOLVED values are filled from real sources, resolves completely' {
+        $f = New-Fixture
+        $example = Get-Content -LiteralPath (Join-Path $InstallerRoot 'config/release-manifest.example.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        $f.Manifest = ConvertTo-VerifiedExample $f
+        $r = Invoke-Resolve $f
+        Assert-True ($r.Errors.Count -eq 0) "example resolves: $($r.Errors -join ' | ')"
+        Assert-Equal (@($example.buildOrder) -join ',') ((@($r.Resolved.repositories) | ForEach-Object { $_.id }) -join ',') 'example build order is kept'
+        Assert-Equal 2 @($r.Resolved.repositories).Count 'only the two verified repositories'
+        Assert-Equal 'build-input,application' ((@($r.Resolved.repositories) | ForEach-Object { $_.role }) -join ',') 'roles'
+        Assert-Equal 0 @($r.Resolved.warnings).Count 'no warnings: nothing unverified is listed'
+        Assert-True ((@($r.Resolved.dependencies).Count -eq 1) -and ($r.Resolved.dependencies[0].verified -eq $true)) 'the single dependency is verified'
+        Assert-Equal 'roadpilot' $r.Resolved.dependencies[0].from 'dependency source'
+        Assert-Equal 'telemetry' $r.Resolved.dependencies[0].to 'dependency target'
+    }
+
+    Test-Case 'the unmodified example is not resolvable (UNRESOLVED values are never filled in or guessed)' {
+        $f = New-Fixture
+        $f.Manifest = Get-Content -LiteralPath (Join-Path $InstallerRoot 'config/release-manifest.example.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        Assert-Rejected (Invoke-Resolve $f) 'verified manifest is required'
+        Assert-Equal '' (Invoke-G $f.AppDir @('status', '--porcelain')) 'no repository changed'
+    }
+
+    Test-Case 'adding Map, Language or Visualization back to the example is rejected as unverified' {
+        $f = New-Fixture
+        $f.Manifest = ConvertTo-VerifiedExample $f
+        $extra = @()
+        foreach ($n in 'Map', 'Language', 'Visualization') {
+            $name = "RoadPilot-$n"
+            $dir = New-FixtureRepo $f.Root $name
+            Write-Lf (Join-Path $dir 'README.md') "$n`n"
+            $null = Invoke-G $dir @('add', '--all'); $null = Invoke-G $dir @('commit', '--quiet', '-m', "$n initial commit"); Set-DefaultBranch $dir
+            $f.Map[$name] = $dir
+            $extra += [pscustomobject]@{ id = $n.ToLower(); name = $name; url = "https://github.com/RoadPilotHQ/$name.git"; role = $n; version = '0.1.0'; pin = [pscustomobject]@{ commit = (Invoke-G $dir @('rev-parse', 'HEAD')) }; dependsOn = @() }
+        }
+        $f.Manifest.repositories = @($f.Manifest.repositories) + $extra
+        $f.Manifest.buildOrder = @('telemetry', 'map', 'language', 'visualization', 'roadpilot')
+        $r = Invoke-Resolve $f
+        Assert-Rejected $r 'no verified role'
+        foreach ($n in 'RoadPilot-Map', 'RoadPilot-Language', 'RoadPilot-Visualization') {
+            Assert-True (@($r.Errors | Where-Object { ($_ -match [regex]::Escape($n)) -and ($_ -match 'no verified role') }).Count -eq 1) "$n is reported as unverified"
+        }
+    }
 }
 finally {
     foreach ($r in $script:Roots) { if (Test-Path -LiteralPath $r) { Remove-Item -LiteralPath $r -Recurse -Force -ErrorAction SilentlyContinue } }

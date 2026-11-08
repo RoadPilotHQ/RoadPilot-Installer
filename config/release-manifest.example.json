@@ -20,33 +20,6 @@
       "dependsOn": []
     },
     {
-      "id": "map",
-      "name": "RoadPilot-Map",
-      "url": "https://github.com/RoadPilotHQ/RoadPilot-Map.git",
-      "role": "Map data and map functionality",
-      "version": "UNRESOLVED",
-      "pin": { "commit": "UNRESOLVED" },
-      "dependsOn": []
-    },
-    {
-      "id": "language",
-      "name": "RoadPilot-Language",
-      "url": "https://github.com/RoadPilotHQ/RoadPilot-Language.git",
-      "role": "Localization",
-      "version": "UNRESOLVED",
-      "pin": { "commit": "UNRESOLVED" },
-      "dependsOn": []
-    },
-    {
-      "id": "visualization",
-      "name": "RoadPilot-Visualization",
-      "url": "https://github.com/RoadPilotHQ/RoadPilot-Visualization.git",
-      "role": "Visualization components",
-      "version": "UNRESOLVED",
-      "pin": { "commit": "UNRESOLVED" },
-      "dependsOn": []
-    },
-    {
       "id": "roadpilot",
       "name": "RoadPilot",
       "url": "https://github.com/RoadPilotHQ/RoadPilot.git",
@@ -57,5 +30,5 @@
       "dependencyEvidence": "src-tauri/Cargo.toml in RoadPilot declares roadpilot-telemetry-client as a git dependency on RoadPilot-Telemetry. Other dependencies (map, language, visualization, plugin, sdk) are NOT yet verified and are intentionally not listed."
     }
   ],
-  "buildOrder": ["telemetry", "map", "language", "visualization", "roadpilot"]
+  "buildOrder": ["telemetry", "roadpilot"]
 }
