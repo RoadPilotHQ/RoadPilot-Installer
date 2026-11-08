@@ -1,0 +1,19 @@
+name: Validate foundation
+
+# Validation only. This workflow never publishes releases, creates tags or pushes changes.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate repository foundation
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Foundation.ps1

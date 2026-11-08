@@ -1,0 +1,25 @@
+# Build and release output (produced by future phases, never committed)
+/build/
+/dist/
+/staging/
+/out/
+/artifacts/
+/work/
+
+# Local tooling files
+CLAUDE.md
+CLAUDE.local.md
+.claude/settings.local.json
+
+# Secrets and local configuration
+.env
+.env.*
+*.pem
+*.pfx
+*.key
+*.local.json
+
+# Editor and OS files
+.vs/
+.vscode/
+Thumbs.db
